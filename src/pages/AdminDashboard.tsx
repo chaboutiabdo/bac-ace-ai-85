@@ -9,6 +9,7 @@ import { SessionsManagement } from "@/components/admin/SessionsManagement";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { AlumniManagement } from "@/components/admin/AlumniManagement";
 import { VideosManagement } from "@/components/admin/VideosManagement";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 type AdminSection = "overview" | "schools" | "students" | "alumni" | "videos" | "exams" | "sessions" | "settings";
 
@@ -39,19 +40,21 @@ const AdminDashboard = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar 
-          activeSection={activeSection} 
-          onSectionChange={setActiveSection} 
-        />
-        <main className="flex-1 overflow-auto">
-          <div className="container py-6">
-            {renderActiveSection()}
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <ProtectedRoute requiredRole="admin">
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-background">
+          <AdminSidebar 
+            activeSection={activeSection} 
+            onSectionChange={setActiveSection} 
+          />
+          <main className="flex-1 overflow-auto">
+            <div className="container py-6">
+              {renderActiveSection()}
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
+    </ProtectedRoute>
   );
 };
 

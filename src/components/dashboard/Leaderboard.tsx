@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeaderboardEntry {
   id: string;
@@ -12,16 +14,42 @@ interface LeaderboardEntry {
   rank: number;
 }
 
-const mockLeaderboard: LeaderboardEntry[] = [
-  { id: "1", name: "Fatima Zahra", score: 2150, rank: 1 },
-  { id: "2", name: "Mohamed Amine", score: 1980, rank: 2 },
-  { id: "3", name: "Yasmine Boudjema", score: 1875, rank: 3 },
-  { id: "4", name: "Ahmed Benali", score: 1720, rank: 4 },
-  { id: "5", name: "Rania Mokrani", score: 1650, rank: 5 },
-];
-
 const Leaderboard = () => {
   const { t, isRTL } = useLanguage();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+  const fetchLeaderboard = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, total_score')
+        .order('total_score', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Error fetching leaderboard:', error);
+        return;
+      }
+
+      const leaderboardData = data.map((entry, index) => ({
+        id: entry.id,
+        name: entry.name,
+        score: entry.total_score,
+        rank: index + 1
+      }));
+
+      setLeaderboard(leaderboardData);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -58,7 +86,12 @@ const Leaderboard = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {mockLeaderboard.map((student) => (
+        {loading ? (
+          <div className="text-center text-muted-foreground">Loading...</div>
+        ) : leaderboard.length === 0 ? (
+          <div className="text-center text-muted-foreground">No students yet</div>
+        ) : (
+          leaderboard.map((student) => (
           <div
             key={student.id}
             className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
@@ -83,7 +116,8 @@ const Leaderboard = () => {
               {student.score.toLocaleString()} {t("pts")}
             </Badge>
           </div>
-        ))}
+        ))
+        )}
       </CardContent>
     </Card>
   );
