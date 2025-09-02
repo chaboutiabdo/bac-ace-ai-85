@@ -121,9 +121,14 @@ const Exams = () => {
                       <FileText className="h-4 w-4 mr-2" />
                       Solution
                     </Button>
-                    <Button variant="default" size="sm" className="w-full bg-gradient-to-r from-primary to-accent text-white">
-                      <Bot className="h-4 w-4 mr-2" />
-                      Solve with AI
+                    <Button 
+                      variant="hero" 
+                      size="sm" 
+                      className="w-full relative overflow-hidden group hover:scale-105 transition-all duration-300"
+                    >
+                      <Bot className="h-4 w-4 mr-2 animate-pulse" />
+                      <span className="font-medium">Solve with AI</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                     </Button>
                   </div>
                 </CardContent>
