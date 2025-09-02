@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,109 +51,74 @@ import {
   Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-interface VideoItem {
-  id: string;
-  title: string;
-  description: string;
-  type: "upload" | "link";
-  url: string;
-  duration: number; // in minutes
-  stream: string;
-  subject: string;
-  chapter: string;
-  views: number;
-  createdAt: string;
-  status: "active" | "draft" | "archived";
-  thumbnail?: string;
-}
+type VideoItem = Tables<"videos">;
 
 export function VideosManagement() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [streamFilter, setStreamFilter] = useState("all");
   const [subjectFilter, setSubjectFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState<"all" | "uploaded" | "links">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "youtube" | "premium">("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock data - replace with real data from Supabase
-  const [videos, setVideos] = useState<VideoItem[]>([
-    {
-      id: "1",
-      title: "Les Fonctions Mathématiques - Partie 1",
-      description: "Introduction aux fonctions mathématiques avec exemples pratiques",
-      type: "upload",
-      url: "/videos/math-functions-1.mp4",
-      duration: 45,
-      stream: "Sciences Mathématiques",
-      subject: "Mathématiques",
-      chapter: "Fonctions",
-      views: 1250,
-      createdAt: "2024-01-15",
-      status: "active",
-      thumbnail: "/thumbnails/math-1.jpg"
-    },
-    {
-      id: "2",
-      title: "Chimie Organique - Les Alcanes",
-      description: "Étude complète des alcanes en chimie organique",
-      type: "link",
-      url: "https://youtube.com/watch?v=example123",
-      duration: 32,
-      stream: "Sciences Physiques",
-      subject: "Chimie",
-      chapter: "Chimie Organique",
-      views: 890,
-      createdAt: "2024-01-10",
-      status: "active"
-    },
-    {
-      id: "3",
-      title: "Histoire du Maroc - Dynastie Almoravide",
-      description: "L'histoire des Almoravides au Maroc médiéval",
-      type: "upload",
-      url: "/videos/history-almoravides.mp4",
-      duration: 38,
-      stream: "Lettres Modernes",
-      subject: "Histoire",
-      chapter: "Histoire Médiévale",
-      views: 567,
-      createdAt: "2024-01-08",
-      status: "active"
+  // Load videos from Supabase
+  const loadVideos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("videos")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load videos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setVideos(data || []);
+    } catch (error) {
+      console.error("Error loading videos:", error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadVideos();
+  }, []);
 
   // Form state for video creation
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    type: "upload" as "upload" | "link",
+    type: "youtube" as "youtube" | "premium",
     url: "",
     duration: "",
-    stream: "",
     subject: "",
     chapter: "",
-    status: "draft" as "active" | "draft" | "archived"
   });
 
-  const streams = ["Sciences Mathématiques", "Sciences Physiques", "Sciences de la Vie et de la Terre", "Lettres Modernes"];
   const subjects = ["Mathématiques", "Physique", "Chimie", "SVT", "Histoire", "Géographie", "Français", "Anglais", "Arabe", "Philosophie"];
   const chapters = ["Introduction", "Chapitre 1", "Chapitre 2", "Chapitre 3", "Révisions", "Examens Blancs"];
 
   const filteredVideos = videos.filter(video => {
     const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         video.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (video.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                          video.subject.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStream = streamFilter === "all" || video.stream === streamFilter;
     const matchesSubject = subjectFilter === "all" || video.subject === subjectFilter;
-    const matchesType = activeTab === "all" || 
-                       (activeTab === "uploaded" && video.type === "upload") ||
-                       (activeTab === "links" && video.type === "link");
-    return matchesSearch && matchesStream && matchesSubject && matchesType;
+    const matchesType = activeTab === "all" || video.type === activeTab;
+    return matchesSearch && matchesSubject && matchesType;
   });
 
-  const handleCreateVideo = () => {
-    if (!formData.title || !formData.stream || !formData.subject || !formData.chapter) {
+  const handleCreateVideo = async () => {
+    if (!formData.title || !formData.subject || !formData.chapter) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -162,7 +127,7 @@ export function VideosManagement() {
       return;
     }
 
-    if (formData.type === "link" && !formData.url) {
+    if (!formData.url) {
       toast({
         title: "Error",
         description: "Please provide a valid video URL",
@@ -171,60 +136,62 @@ export function VideosManagement() {
       return;
     }
 
-    const newVideo: VideoItem = {
-      id: Date.now().toString(),
-      ...formData,
-      duration: parseInt(formData.duration) || 0,
-      views: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-      url: formData.type === "upload" ? `/videos/${Date.now()}.mp4` : formData.url
-    };
+    try {
+      const { error } = await supabase
+        .from("videos")
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          type: formData.type,
+          url: formData.url,
+          duration: parseInt(formData.duration) || null,
+          subject: formData.subject,
+          chapter: formData.chapter,
+        });
 
-    setVideos([...videos, newVideo]);
-    setFormData({
-      title: "",
-      description: "",
-      type: "upload",
-      url: "",
-      duration: "",
-      stream: "",
-      subject: "",
-      chapter: "",
-      status: "draft"
-    });
-    setIsCreateDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "Video created successfully",
-    });
-  };
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create video",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // In a real application, you would upload the file to a storage service
-    // For now, we'll just simulate the upload
-    toast({
-      title: "Upload Started",
-      description: `Uploading ${file.name}...`,
-    });
-
-    // Simulate upload progress
-    setTimeout(() => {
-      toast({
-        title: "Upload Complete",
-        description: "Video uploaded successfully",
+      // Reload videos
+      await loadVideos();
+      
+      // Reset form
+      setFormData({
+        title: "",
+        description: "",
+        type: "youtube",
+        url: "",
+        duration: "",
+        subject: "",
+        chapter: "",
       });
-    }, 3000);
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Video created successfully",
+      });
+    } catch (error) {
+      console.error("Error creating video:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create video",
+        variant: "destructive",
+      });
+    }
   };
 
   const totalVideos = videos.length;
-  const uploadedVideos = videos.filter(v => v.type === "upload").length;
-  const linkedVideos = videos.filter(v => v.type === "link").length;
-  const totalViews = videos.reduce((sum, v) => sum + v.views, 0);
-  const avgDuration = Math.round(videos.reduce((sum, v) => sum + v.duration, 0) / videos.length);
+  const youtubeVideos = videos.filter(v => v.type === "youtube").length;
+  const premiumVideos = videos.filter(v => v.type === "premium").length;
+  const totalViews = videos.reduce((sum, v) => sum + (v.views || 0), 0);
+  const avgDuration = videos.length > 0 ? Math.round(videos.reduce((sum, v) => sum + (v.duration || 0), 0) / videos.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -235,7 +202,7 @@ export function VideosManagement() {
             <Video className="h-8 w-8" />
             Videos Management
           </h1>
-          <p className="text-muted-foreground">Manage video content, streams, subjects, and chapters</p>
+          <p className="text-muted-foreground">Manage video content, subjects, and chapters</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -248,37 +215,36 @@ export function VideosManagement() {
             <DialogHeader>
               <DialogTitle>Add New Video</DialogTitle>
               <DialogDescription>
-                Add a new video by uploading a file or providing a link.
+                Add a new video by providing a YouTube or premium video URL.
               </DialogDescription>
             </DialogHeader>
             
-            <Tabs value={formData.type} onValueChange={(value) => setFormData({...formData, type: value as "upload" | "link"})}>
+            <Tabs value={formData.type} onValueChange={(value) => setFormData({...formData, type: value as "youtube" | "premium"})}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="upload">Upload Video</TabsTrigger>
-                <TabsTrigger value="link">Video Link</TabsTrigger>
+                <TabsTrigger value="youtube">YouTube Video</TabsTrigger>
+                <TabsTrigger value="premium">Premium Video</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="upload" className="space-y-4">
+              <TabsContent value="youtube" className="space-y-4">
                 <div>
-                  <Label htmlFor="video-upload">Select Video File</Label>
-                  <Input
-                    id="video-upload"
-                    type="file"
-                    accept="video/*"
-                    onChange={handleFileUpload}
-                    className="mt-1"
-                  />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="link" className="space-y-4">
-                <div>
-                  <Label htmlFor="video-url">Video URL</Label>
+                  <Label htmlFor="video-url">YouTube Video URL</Label>
                   <Input
                     id="video-url"
                     value={formData.url}
                     onChange={(e) => setFormData({...formData, url: e.target.value})}
                     placeholder="https://youtube.com/watch?v=..."
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="premium" className="space-y-4">
+                <div>
+                  <Label htmlFor="premium-url">Premium Video URL or File Path</Label>
+                  <Input
+                    id="premium-url"
+                    value={formData.url}
+                    onChange={(e) => setFormData({...formData, url: e.target.value})}
+                    placeholder="https://example.com/video.mp4 or /uploads/video.mp4"
                   />
                 </div>
               </TabsContent>
@@ -303,19 +269,6 @@ export function VideosManagement() {
                   placeholder="Video description"
                   rows={3}
                 />
-              </div>
-              <div>
-                <Label htmlFor="stream">Stream *</Label>
-                <Select value={formData.stream} onValueChange={(value) => setFormData({...formData, stream: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select stream" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border z-50">
-                    {streams.map((stream) => (
-                      <SelectItem key={stream} value={stream}>{stream}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div>
                 <Label htmlFor="subject">Subject *</Label>
@@ -353,19 +306,6 @@ export function VideosManagement() {
                   placeholder="Duration in minutes"
                 />
               </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as "active" | "draft" | "archived"})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border z-50">
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
@@ -396,10 +336,10 @@ export function VideosManagement() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-success" />
+              <Link className="h-5 w-5 text-success" />
               <div>
-                <p className="text-2xl font-bold">{uploadedVideos}</p>
-                <p className="text-sm text-muted-foreground">Uploaded</p>
+                <p className="text-2xl font-bold">{youtubeVideos}</p>
+                <p className="text-sm text-muted-foreground">YouTube</p>
               </div>
             </div>
           </CardContent>
@@ -407,10 +347,10 @@ export function VideosManagement() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <Link className="h-5 w-5 text-accent" />
+              <Upload className="h-5 w-5 text-accent" />
               <div>
-                <p className="text-2xl font-bold">{linkedVideos}</p>
-                <p className="text-sm text-muted-foreground">Linked</p>
+                <p className="text-2xl font-bold">{premiumVideos}</p>
+                <p className="text-sm text-muted-foreground">Premium</p>
               </div>
             </div>
           </CardContent>
@@ -453,18 +393,18 @@ export function VideosManagement() {
                 All Videos ({videos.length})
               </Button>
               <Button
-                variant={activeTab === "uploaded" ? "default" : "outline"}
-                onClick={() => setActiveTab("uploaded")}
+                variant={activeTab === "youtube" ? "default" : "outline"}
+                onClick={() => setActiveTab("youtube")}
                 size="sm"
               >
-                Uploaded ({uploadedVideos})
+                YouTube ({youtubeVideos})
               </Button>
               <Button
-                variant={activeTab === "links" ? "default" : "outline"}
-                onClick={() => setActiveTab("links")}
+                variant={activeTab === "premium" ? "default" : "outline"}
+                onClick={() => setActiveTab("premium")}
                 size="sm"
               >
-                Links ({linkedVideos})
+                Premium ({premiumVideos})
               </Button>
             </div>
           </div>
@@ -481,18 +421,6 @@ export function VideosManagement() {
                 className="pl-10"
               />
             </div>
-            <Select value={streamFilter} onValueChange={setStreamFilter}>
-              <SelectTrigger className="w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by stream" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border z-50">
-                <SelectItem value="all">All Streams</SelectItem>
-                {streams.map((stream) => (
-                  <SelectItem key={stream} value={stream}>{stream}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select value={subjectFilter} onValueChange={setSubjectFilter}>
               <SelectTrigger className="w-48">
                 <Filter className="h-4 w-4 mr-2" />
@@ -512,92 +440,88 @@ export function VideosManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Video</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Stream & Subject</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Subject</TableHead>
                   <TableHead>Chapter</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Views</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVideos.map((video) => (
-                  <TableRow key={video.id}>
-                    <TableCell>
-                      <div className="flex items-start gap-3">
-                        <div className="w-16 h-12 bg-muted rounded-lg flex items-center justify-center">
-                          <Play className="h-4 w-4 text-muted-foreground" />
-                        </div>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      Loading videos...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredVideos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      No videos found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredVideos.map((video) => (
+                    <TableRow key={video.id}>
+                      <TableCell>
                         <div>
-                          <p className="font-medium text-sm">{video.title}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
+                          <p className="font-medium">{video.title}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2">
                             {video.description}
                           </p>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={video.type === "upload" ? "default" : "secondary"}>
-                        {video.type === "upload" ? (
-                          <>
-                            <Upload className="h-3 w-3 mr-1" />
-                            Uploaded
-                          </>
-                        ) : (
-                          <>
-                            <Link className="h-3 w-3 mr-1" />
-                            Link
-                          </>
-                        )}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm font-medium">{video.stream}</p>
-                        <p className="text-xs text-muted-foreground">{video.subject}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{video.chapter}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{video.duration}min</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Eye className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">{video.views.toLocaleString()}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          video.status === "active" ? "default" : 
-                          video.status === "draft" ? "secondary" : 
-                          "outline"
-                        }
-                      >
-                        {video.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">
+                          {video.subject}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{video.chapter}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={video.type === "premium" ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          <div className="flex items-center gap-1">
+                            {video.type === "premium" ? (
+                              <Upload className="h-3 w-3" />
+                            ) : (
+                              <Link className="h-3 w-3" />
+                            )}
+                            {video.type}
+                          </div>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {video.duration ? `${video.duration}min` : "N/A"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          {(video.views || 0).toLocaleString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" title="Play video">
+                            <Play className="h-4 w-4 text-success" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Edit video">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Delete video">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

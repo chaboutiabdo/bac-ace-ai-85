@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,91 +32,63 @@ import {
 } from "lucide-react";
 import { StudentApprovalDialog } from "./StudentApprovalDialog";
 import { AddStudentDialog } from "./AddStudentDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import type { Tables } from "@/integrations/supabase/types";
 
-interface Student {
-  id: string;
-  name: string;
-  email: string;
-  school: string | null; // School is now optional
-  stream: string;
-  score: number;
+type Student = Tables<"profiles"> & {
   quizzesCompleted: number;
   lastActive: string;
   status: "active" | "inactive";
-}
+};
 
 export function StudentsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<"approved" | "pending">("approved");
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Mock data - replace with real data from Supabase
-  const [students] = useState<Student[]>([
-    {
-      id: "1",
-      name: "Ahmed Benali",
-      email: "ahmed.benali@email.com",
-      school: "Lycée Mohamed Boudiaf",
-      stream: "Sciences Expérimentales",
-      score: 1250,
-      quizzesCompleted: 47,
-      lastActive: "2024-01-20",
-      status: "active"
-    },
-    {
-      id: "2",
-      name: "Fatima Zohra",
-      email: "fatima.zohra@email.com", 
-      school: "Lycée Ibn Khaldoun",
-      stream: "Mathématiques",
-      score: 980,
-      quizzesCompleted: 35,
-      lastActive: "2024-01-19",
-      status: "active"
-    },
-    {
-      id: "3",
-      name: "Mohamed Amari",
-      email: "mohamed.amari@email.com",
-      school: null,  // Student without school
-      stream: "Informatique",
-      score: 750,
-      quizzesCompleted: 28,
-      lastActive: "2024-01-15",
-      status: "inactive"
-    },
-    {
-      id: "4",
-      name: "Yasmine Khalil",
-      email: "yasmine.khalil@email.com",
-      school: null,  // Independent learner
-      stream: "Gestion Économie",
-      score: 1100,
-      quizzesCompleted: 52,
-      lastActive: "2024-01-22",
-      status: "active"
-    }
-  ]);
+  // Load students from Supabase
+  const loadStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  // Mock pending students - replace with real data from Supabase
-  const [pendingStudents] = useState([
-    {
-      id: "pending-1",
-      name: "Sara Amrani",
-      email: "sara.amrani@email.com",
-      school: "Lycée Ibn Sina",
-      stream: "Sciences Expérimentales",
-      registrationDate: "2024-01-21"
-    },
-    {
-      id: "pending-2",
-      name: "Youssef Bennani",
-      email: "youssef.bennani@email.com",
-      school: null, // No school
-      stream: "Technique Mathématiques",
-      registrationDate: "2024-01-20"
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load students",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Transform data to include additional fields
+      const studentsWithStats = data?.map(profile => ({
+        ...profile,
+        quizzesCompleted: 0, // TODO: Calculate from quiz_attempts
+        lastActive: profile.updated_at,
+        status: "active" as const, // TODO: Calculate based on last activity
+      })) || [];
+
+      setStudents(studentsWithStats);
+    } catch (error) {
+      console.error("Error loading students:", error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadStudents();
+  }, []);
+
+  // Mock pending students - TODO: implement proper pending system
+  const pendingStudents: any[] = [];
 
   const schools = ["Lycée Mohamed Boudiaf", "Lycée Ibn Khaldoun", "Lycée El Houria"];
 
@@ -124,23 +96,16 @@ export function StudentsManagement() {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSchool = schoolFilter === "all" || 
-                         (schoolFilter === "no-school" && !student.school) ||
-                         student.school === schoolFilter;
+                         (schoolFilter === "no-school" && !student.stream) ||
+                         student.stream === schoolFilter;
     return matchesSearch && matchesSchool;
   });
 
-  const filteredPendingStudents = pendingStudents.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSchool = schoolFilter === "all" || 
-                         (schoolFilter === "no-school" && !student.school) ||
-                         student.school === schoolFilter;
-    return matchesSearch && matchesSchool;
-  });
+  const filteredPendingStudents = pendingStudents;
 
   const activeStudents = students.filter(s => s.status === "active").length;
-  const totalScore = students.reduce((sum, s) => sum + s.score, 0);
-  const avgScore = Math.round(totalScore / students.length);
+  const totalScore = students.reduce((sum, s) => sum + s.total_score, 0);
+  const avgScore = students.length > 0 ? Math.round(totalScore / students.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -289,88 +254,112 @@ export function StudentsManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activeTab === "approved" ? (
-                  filteredStudents.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{student.name}</p>
-                          <p className="text-sm text-muted-foreground">{student.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {student.school ? (
-                          <span>{student.school}</span>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            Independent
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {student.stream}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {student.score.toLocaleString()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{student.quizzesCompleted}</TableCell>
-                      <TableCell>{new Date(student.lastActive).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={student.status === "active" ? "default" : "secondary"}
-                        >
-                          {student.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      Loading students...
+                    </TableCell>
+                  </TableRow>
+                ) : activeTab === "approved" ? (
+                  filteredStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        No students found
                       </TableCell>
                     </TableRow>
-                  ))
+                  ) : (
+                    filteredStudents.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{student.name}</p>
+                            <p className="text-sm text-muted-foreground">{student.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {student.stream ? (
+                            <Badge variant="outline" className="text-xs">
+                              {student.stream}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              No Stream
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {student.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {student.total_score.toLocaleString()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{student.quizzesCompleted}</TableCell>
+                        <TableCell>{new Date(student.lastActive).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={student.status === "active" ? "default" : "secondary"}
+                          >
+                            {student.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )
                 ) : (
-                  filteredPendingStudents.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{student.name}</p>
-                          <p className="text-sm text-muted-foreground">{student.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {student.school ? (
-                          <span>{student.school}</span>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            Independent
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {student.stream}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{new Date(student.registrationDate).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <StudentApprovalDialog student={student}>
-                          <Button size="sm" className="gradient-primary text-white">
-                            Review Application
-                          </Button>
-                        </StudentApprovalDialog>
+                  filteredPendingStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        No pending students
                       </TableCell>
                     </TableRow>
-                  ))
+                  ) : (
+                    filteredPendingStudents.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{student.name}</p>
+                            <p className="text-sm text-muted-foreground">{student.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {student.school ? (
+                            <span>{student.school}</span>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              Independent
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {student.stream}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(student.registrationDate).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <StudentApprovalDialog student={student}>
+                            <Button size="sm" className="gradient-primary text-white">
+                              Review Application
+                            </Button>
+                          </StudentApprovalDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )
                 )}
               </TableBody>
             </Table>

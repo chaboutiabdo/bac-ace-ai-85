@@ -140,6 +140,45 @@ export type Database = {
           },
         ]
       }
+      exam_activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          difficulty: string | null
+          exam_id: string
+          exam_title: string
+          id: string
+          stream: string
+          student_id: string
+          subject: string
+          year: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          difficulty?: string | null
+          exam_id: string
+          exam_title: string
+          id?: string
+          stream: string
+          student_id: string
+          subject: string
+          year: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          difficulty?: string | null
+          exam_id?: string
+          exam_title?: string
+          id?: string
+          stream?: string
+          student_id?: string
+          subject?: string
+          year?: number
+        }
+        Relationships: []
+      }
       exam_progress: {
         Row: {
           completed_at: string | null
@@ -308,6 +347,45 @@ export type Database = {
           },
         ]
       }
+      quiz_question_results: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          question_text: string
+          quiz_attempt_id: string
+          student_answer: string | null
+          student_id: string
+          time_spent: number | null
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          question_text: string
+          quiz_attempt_id: string
+          student_answer?: string | null
+          student_id: string
+          time_spent?: number | null
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          question_text?: string
+          quiz_attempt_id?: string
+          student_answer?: string | null
+          student_id?: string
+          time_spent?: number | null
+        }
+        Relationships: []
+      }
       quizzes: {
         Row: {
           chapter: string | null
@@ -404,6 +482,84 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      student_questions_log: {
+        Row: {
+          ai_response: string | null
+          context_id: string | null
+          context_type: string | null
+          created_at: string
+          id: string
+          question_text: string
+          satisfaction_rating: number | null
+          student_id: string
+          subject: string | null
+          topic: string | null
+        }
+        Insert: {
+          ai_response?: string | null
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          id?: string
+          question_text: string
+          satisfaction_rating?: number | null
+          student_id: string
+          subject?: string | null
+          topic?: string | null
+        }
+        Update: {
+          ai_response?: string | null
+          context_id?: string | null
+          context_type?: string | null
+          created_at?: string
+          id?: string
+          question_text?: string
+          satisfaction_rating?: number | null
+          student_id?: string
+          subject?: string | null
+          topic?: string | null
+        }
+        Relationships: []
+      }
+      video_activity_logs: {
+        Row: {
+          action: string
+          chapter: string | null
+          created_at: string
+          id: string
+          position: number | null
+          session_id: string | null
+          student_id: string
+          subject: string
+          video_id: string
+          video_title: string
+        }
+        Insert: {
+          action: string
+          chapter?: string | null
+          created_at?: string
+          id?: string
+          position?: number | null
+          session_id?: string | null
+          student_id: string
+          subject: string
+          video_id: string
+          video_title: string
+        }
+        Update: {
+          action?: string
+          chapter?: string | null
+          created_at?: string
+          id?: string
+          position?: number | null
+          session_id?: string | null
+          student_id?: string
+          subject?: string
+          video_id?: string
+          video_title?: string
         }
         Relationships: []
       }
