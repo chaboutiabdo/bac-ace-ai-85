@@ -28,10 +28,12 @@ import {
   School,
   Trophy,
   Target,
-  Clock
+  Clock,
+  Eye
 } from "lucide-react";
 import { StudentApprovalDialog } from "./StudentApprovalDialog";
 import { AddStudentDialog } from "./AddStudentDialog";
+import { StudentActivityDialog } from "./StudentActivityDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -48,6 +50,8 @@ export function StudentsManagement() {
   const [activeTab, setActiveTab] = useState<"approved" | "pending">("approved");
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isActivityDialogOpen, setIsActivityDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Load students from Supabase
@@ -308,6 +312,16 @@ export function StudentsManagement() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedStudent(student);
+                                setIsActivityDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="sm">
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -366,6 +380,15 @@ export function StudentsManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {selectedStudent && (
+        <StudentActivityDialog
+          isOpen={isActivityDialogOpen}
+          onOpenChange={setIsActivityDialogOpen}
+          studentId={selectedStudent.id}
+          studentName={selectedStudent.name}
+        />
+      )}
     </div>
   );
 }

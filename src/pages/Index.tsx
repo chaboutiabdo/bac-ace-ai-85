@@ -5,6 +5,7 @@ import Leaderboard from "@/components/dashboard/Leaderboard";
 import UserProfile from "@/components/dashboard/UserProfile";
 import AdviceTips from "@/components/dashboard/AdviceTips";
 import QuickActions from "@/components/dashboard/QuickActions";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ const Index = () => {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <QuickActions />
+                <RecentActivity />
               </div>
               <div className="space-y-6">
                 <Leaderboard />

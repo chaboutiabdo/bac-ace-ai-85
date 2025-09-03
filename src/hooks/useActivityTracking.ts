@@ -53,6 +53,16 @@ export const useActivityTracking = () => {
         position,
         session_id: sessionId,
       });
+
+      // If video completed, track video progress for scoring
+      if (action === "completed") {
+        await supabase.from("video_progress").upsert({
+          student_id: user.id,
+          video_id: videoId,
+          watched: true,
+          completed_at: new Date().toISOString()
+        });
+      }
     } catch (error) {
       console.error("Error tracking video activity:", error);
     }

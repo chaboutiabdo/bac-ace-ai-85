@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Table,
   TableBody,
@@ -43,97 +44,77 @@ import {
   Target
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Alumni {
   id: string;
   name: string;
-  email: string;
-  class: string;
-  score: number;
   university: string;
-  field: string;
-  graduationYear: string;
-  currentJob?: string;
-  linkedIn?: string;
-  status: "active" | "inactive";
+  field_of_study: string;
+  bac_score?: number;
+  advice?: string;
+  linkedin_url?: string;
+  avatar_url?: string;
+  available_for_mentoring: boolean;
+  created_at: string;
 }
 
 export function AlumniManagement() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [classFilter, setClassFilter] = useState("all");
   const [fieldFilter, setFieldFilter] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isCSVDialogOpen, setIsCSVDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  // Mock data - replace with real data from Supabase
-  const [alumni, setAlumni] = useState<Alumni[]>([
-    {
-      id: "1",
-      name: "Sara Amrani",
-      email: "sara.amrani@email.com",
-      class: "Sciences Mathématiques",
-      score: 1850,
-      university: "Université Mohammed V",
-      field: "Génie Informatique",
-      graduationYear: "2022",
-      currentJob: "Software Engineer at Google",
-      linkedIn: "linkedin.com/in/sara-amrani",
-      status: "active"
-    },
-    {
-      id: "2", 
-      name: "Youssef Bennani",
-      email: "youssef.bennani@email.com",
-      class: "Sciences Physiques",
-      score: 1650,
-      university: "INSA Rabat",
-      field: "Génie Civil",
-      graduationYear: "2021",
-      currentJob: "Civil Engineer at OCP Group",
-      status: "active"
-    },
-    {
-      id: "3",
-      name: "Aicha El Fassi",
-      email: "aicha.elfassi@email.com", 
-      class: "Sciences de la Vie et de la Terre",
-      score: 1750,
-      university: "Faculté de Médecine Casablanca",
-      field: "Médecine",
-      graduationYear: "2023",
-      currentJob: "Resident Doctor at CHU",
-      status: "active"
-    }
-  ]);
+  const [alumni, setAlumni] = useState<Alumni[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Form state for manual creation
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    class: "",
-    score: "",
     university: "",
-    field: "",
-    graduationYear: "",
-    currentJob: "",
-    linkedIn: ""
+    field_of_study: "",
+    bac_score: "",
+    advice: "",
+    linkedin_url: "",
+    avatar_url: ""
   });
 
-  const classes = ["Sciences Mathématiques", "Sciences Physiques", "Sciences de la Vie et de la Terre", "Lettres Modernes"];
-  const fields = ["Génie Informatique", "Génie Civil", "Médecine", "Économie", "Droit", "Architecture"];
+  const fields = ["Computer Science", "Engineering", "Medicine", "Economics", "Law", "Architecture", "Business", "Sciences"];
+
+  useEffect(() => {
+    fetchAlumni();
+  }, []);
+
+  const fetchAlumni = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('alumni')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAlumni(data || []);
+    } catch (error) {
+      console.error('Error fetching alumni:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load alumni",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAlumni = alumni.filter(alumnus => {
     const matchesSearch = alumnus.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         alumnus.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          alumnus.university.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = classFilter === "all" || alumnus.class === classFilter;
-    const matchesField = fieldFilter === "all" || alumnus.field === fieldFilter;
-    return matchesSearch && matchesClass && matchesField;
+    const matchesField = fieldFilter === "all" || alumnus.field_of_study === fieldFilter;
+    return matchesSearch && matchesField;
   });
 
-  const handleCreateAlumni = () => {
-    if (!formData.name || !formData.email || !formData.class || !formData.score || !formData.university || !formData.field || !formData.graduationYear) {
+  const handleCreateAlumni = async () => {
+    if (!formData.name || !formData.university || !formData.field_of_study) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -142,93 +123,54 @@ export function AlumniManagement() {
       return;
     }
 
-    const newAlumni: Alumni = {
-      id: Date.now().toString(),
-      ...formData,
-      score: parseInt(formData.score),
-      status: "active"
-    };
+    try {
+      const { data, error } = await supabase
+        .from('alumni')
+        .insert({
+          name: formData.name,
+          university: formData.university,
+          field_of_study: formData.field_of_study,
+          bac_score: formData.bac_score ? parseFloat(formData.bac_score) : null,
+          advice: formData.advice,
+          linkedin_url: formData.linkedin_url,
+          avatar_url: formData.avatar_url,
+          available_for_mentoring: true
+        })
+        .select()
+        .single();
 
-    setAlumni([...alumni, newAlumni]);
-    setFormData({
-      name: "",
-      email: "",
-      class: "",
-      score: "",
-      university: "",
-      field: "",
-      graduationYear: "",
-      currentJob: "",
-      linkedIn: ""
-    });
-    setIsCreateDialogOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "Alumni profile created successfully",
-    });
-  };
+      if (error) throw error;
 
-  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const csv = e.target?.result as string;
-      const lines = csv.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim());
+      setAlumni([data, ...alumni]);
+      setFormData({
+        name: "",
+        university: "",
+        field_of_study: "",
+        bac_score: "",
+        advice: "",
+        linkedin_url: "",
+        avatar_url: ""
+      });
+      setIsCreateDialogOpen(false);
       
-      const newAlumni: Alumni[] = [];
-      
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length === headers.length && values[0]) {
-          newAlumni.push({
-            id: Date.now().toString() + i,
-            name: values[0] || "",
-            email: values[1] || "",
-            class: values[2] || "",
-            score: parseInt(values[3]) || 0,
-            university: values[4] || "",
-            field: values[5] || "",
-            graduationYear: values[6] || "",
-            currentJob: values[7] || "",
-            linkedIn: values[8] || "",
-            status: "active"
-          });
-        }
-      }
-      
-      if (newAlumni.length > 0) {
-        setAlumni([...alumni, ...newAlumni]);
-        setIsCSVDialogOpen(false);
-        toast({
-          title: "Success",
-          description: `${newAlumni.length} alumni profiles imported successfully`,
-        });
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const downloadCSVTemplate = () => {
-    const csvContent = "Name,Email,Class,Score,University,Field,Graduation Year,Current Job,LinkedIn\nExample Name,example@email.com,Sciences Mathématiques,1500,Université Mohammed V,Génie Informatique,2022,Software Engineer,linkedin.com/in/example";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = 'alumni_template.csv';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
+      toast({
+        title: "Success",
+        description: "Alumni profile created successfully",
+      });
+    } catch (error) {
+      console.error('Error creating alumni:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create alumni profile",
+        variant: "destructive",
+      });
+    }
   };
 
   const totalAlumni = alumni.length;
-  const avgScore = Math.round(alumni.reduce((sum, a) => sum + a.score, 0) / alumni.length);
+  const avgScore = alumni.length > 0 ? Math.round(alumni.reduce((sum, a) => sum + (a.bac_score || 0), 0) / alumni.length) : 0;
   const uniqueUniversities = new Set(alumni.map(a => a.university)).size;
-  const uniqueFields = new Set(alumni.map(a => a.field)).size;
+  const uniqueFields = new Set(alumni.map(a => a.field_of_study)).size;
 
   return (
     <div className="space-y-6">
@@ -242,39 +184,6 @@ export function AlumniManagement() {
           <p className="text-muted-foreground">Manage alumni profiles and track success stories</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isCSVDialogOpen} onOpenChange={setIsCSVDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Import CSV
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Alumni from CSV</DialogTitle>
-                <DialogDescription>
-                  Upload a CSV file to bulk import alumni profiles. Download the template below for the correct format.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Button onClick={downloadCSVTemplate} variant="outline" className="w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download CSV Template
-                </Button>
-                <div>
-                  <Label htmlFor="csv-upload">Upload CSV File</Label>
-                  <Input
-                    id="csv-upload"
-                    type="file"
-                    accept=".csv"
-                    onChange={handleCSVUpload}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-primary text-white">
@@ -300,39 +209,6 @@ export function AlumniManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    placeholder="Email address"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="class">BAC Class *</Label>
-                  <Select value={formData.class} onValueChange={(value) => setFormData({...formData, class: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select BAC class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((cls) => (
-                        <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="score">BAC Score *</Label>
-                  <Input
-                    id="score"
-                    type="number"
-                    value={formData.score}
-                    onChange={(e) => setFormData({...formData, score: e.target.value})}
-                    placeholder="BAC score"
-                  />
-                </div>
-                <div>
                   <Label htmlFor="university">University *</Label>
                   <Input
                     id="university"
@@ -343,7 +219,7 @@ export function AlumniManagement() {
                 </div>
                 <div>
                   <Label htmlFor="field">Field of Study *</Label>
-                  <Select value={formData.field} onValueChange={(value) => setFormData({...formData, field: value})}>
+                  <Select value={formData.field_of_study} onValueChange={(value) => setFormData({...formData, field_of_study: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
@@ -355,30 +231,42 @@ export function AlumniManagement() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="graduationYear">Graduation Year *</Label>
+                  <Label htmlFor="score">BAC Score</Label>
                   <Input
-                    id="graduationYear"
-                    value={formData.graduationYear}
-                    onChange={(e) => setFormData({...formData, graduationYear: e.target.value})}
-                    placeholder="Year of graduation"
+                    id="score"
+                    type="number"
+                    step="0.1"
+                    value={formData.bac_score}
+                    onChange={(e) => setFormData({...formData, bac_score: e.target.value})}
+                    placeholder="BAC score"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="currentJob">Current Job</Label>
+                <div className="col-span-2">
+                  <Label htmlFor="avatar">Profile Picture URL</Label>
                   <Input
-                    id="currentJob"
-                    value={formData.currentJob}
-                    onChange={(e) => setFormData({...formData, currentJob: e.target.value})}
-                    placeholder="Current position"
+                    id="avatar"
+                    value={formData.avatar_url}
+                    onChange={(e) => setFormData({...formData, avatar_url: e.target.value})}
+                    placeholder="Image URL"
                   />
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="linkedIn">LinkedIn Profile</Label>
                   <Input
                     id="linkedIn"
-                    value={formData.linkedIn}
-                    onChange={(e) => setFormData({...formData, linkedIn: e.target.value})}
+                    value={formData.linkedin_url}
+                    onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})}
                     placeholder="LinkedIn URL"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="advice">Advice for Students</Label>
+                  <Textarea
+                    id="advice"
+                    value={formData.advice}
+                    onChange={(e) => setFormData({...formData, advice: e.target.value})}
+                    placeholder="Share your advice for current students..."
+                    rows={3}
                   />
                 </div>
               </div>
@@ -454,24 +342,12 @@ export function AlumniManagement() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search alumni by name, email, or university..."
+                placeholder="Search alumni by name or university..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {classes.map((cls) => (
-                  <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select value={fieldFilter} onValueChange={setFieldFilter}>
               <SelectTrigger className="w-48">
                 <Filter className="h-4 w-4 mr-2" />
@@ -486,72 +362,59 @@ export function AlumniManagement() {
             </Select>
           </div>
 
-          {/* Alumni Table */}
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Alumni</TableHead>
-                  <TableHead>BAC Info</TableHead>
-                  <TableHead>University</TableHead>
-                  <TableHead>Field</TableHead>
-                  <TableHead>Graduation</TableHead>
-                  <TableHead>Current Role</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAlumni.map((alumnus) => (
-                  <TableRow key={alumnus.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{alumnus.name}</p>
-                        <p className="text-sm text-muted-foreground">{alumnus.email}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm font-medium">{alumnus.class}</p>
-                        <Badge variant="outline" className="font-mono text-xs">
-                          Score: {alumnus.score}
+          {/* Alumni Grid */}
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredAlumni.map((alumnus) => (
+                <Card key={alumnus.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={alumnus.avatar_url} alt={alumnus.name} />
+                        <AvatarFallback>
+                          {alumnus.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <h3 className="font-semibold">{alumnus.name}</h3>
+                          <p className="text-sm text-muted-foreground">{alumnus.university}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {alumnus.field_of_study}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>{alumnus.university}</TableCell>
-                    <TableCell>{alumnus.field}</TableCell>
-                    <TableCell>{alumnus.graduationYear}</TableCell>
-                    <TableCell>
-                      <div>
-                        {alumnus.currentJob && (
-                          <p className="text-sm font-medium">{alumnus.currentJob}</p>
+                        {alumnus.bac_score && (
+                          <div className="flex items-center gap-1">
+                            <Trophy className="h-3 w-3 text-accent" />
+                            <span className="text-xs font-medium">{alumnus.bac_score}</span>
+                          </div>
                         )}
-                        {alumnus.linkedIn && (
-                          <a 
-                            href={`https://${alumnus.linkedIn}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline"
-                          >
-                            LinkedIn Profile
-                          </a>
+                        {alumnus.advice && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{alumnus.advice}</p>
+                        )}
+                        {alumnus.linkedin_url && (
+                          <Button variant="outline" size="sm" className="w-full text-xs" asChild>
+                            <a href={alumnus.linkedin_url} target="_blank" rel="noopener noreferrer">
+                              LinkedIn Profile
+                            </a>
+                          </Button>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {filteredAlumni.length === 0 && (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-muted-foreground">No alumni found matching your criteria.</p>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

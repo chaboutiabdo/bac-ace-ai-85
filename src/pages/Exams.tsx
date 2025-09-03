@@ -3,8 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, CheckCircle, Bot, Eye } from "lucide-react";
+import { CheckCircle, Eye, FileText, Sparkles } from "lucide-react";
 import Navigation from "@/components/layout/Navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Exam {
   id: string;
@@ -26,6 +30,55 @@ const Exams = () => {
   const [selectedStream, setSelectedStream] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
+  
+  const { user } = useAuth();
+  const { trackExamActivity } = useActivityTracking();
+  const { toast } = useToast();
+
+  const handleExamAction = async (exam: Exam, action: 'viewed' | 'viewed_solution' | 'solved_with_ai') => {
+    if (!user) return;
+
+    try {
+      // Track exam activity
+      await trackExamActivity(
+        exam.id,
+        action === 'viewed' ? 'viewed' : action === 'viewed_solution' ? 'downloaded' : 'started_solving',
+        exam.title,
+        exam.subject,
+        exam.year,
+        exam.stream
+      );
+
+      // Update exam progress for scoring
+      const progressUpdate: any = {
+        student_id: user.id,
+        exam_id: exam.id
+      };
+
+      if (action === 'viewed') {
+        progressUpdate.viewed_exam = true;
+      } else if (action === 'viewed_solution') {
+        progressUpdate.viewed_solution = true;
+      } else if (action === 'solved_with_ai') {
+        progressUpdate.solved_with_ai = true;
+      }
+
+      await supabase.from('exam_progress').upsert(progressUpdate);
+
+      toast({
+        title: "Success",
+        description: `Exam ${action.replace('_', ' ')} successfully`,
+      });
+
+    } catch (error) {
+      console.error('Error handling exam action:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process exam action",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredExams = mockExams.filter(exam => {
     return (!selectedStream || selectedStream === "all" || exam.stream === selectedStream) &&
@@ -113,22 +166,28 @@ const Exams = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => handleExamAction(exam, 'viewed')}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
                       View Exam
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => handleExamAction(exam, 'viewed_solution')}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
-                      Solution
+                      Solutions
                     </Button>
                     <Button 
-                      variant="hero" 
-                      size="sm" 
-                      className="w-full relative overflow-hidden group hover:scale-105 transition-all duration-300"
+                      className="w-full bg-gradient-to-r from-primary to-accent text-white hover:opacity-90"
+                      onClick={() => handleExamAction(exam, 'solved_with_ai')}
                     >
-                      <Bot className="h-4 w-4 mr-2 animate-pulse" />
-                      <span className="font-medium">Solve with AI</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Solve with AI
                     </Button>
                   </div>
                 </CardContent>

@@ -655,7 +655,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_user_score: {
+        Args: { user_id_param: string }
+        Returns: number
+      }
     }
     Enums: {
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
