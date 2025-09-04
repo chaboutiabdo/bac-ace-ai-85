@@ -242,13 +242,27 @@ export function AlumniManagement() {
                   />
                 </div>
                 <div className="col-span-2">
-                  <Label htmlFor="avatar">Profile Picture URL</Label>
+                  <Label htmlFor="avatar">Profile Picture</Label>
                   <Input
                     id="avatar"
-                    value={formData.avatar_url}
-                    onChange={(e) => setFormData({...formData, avatar_url: e.target.value})}
-                    placeholder="Image URL"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setFormData({...formData, avatar_url: reader.result as string});
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
                   />
+                  {formData.avatar_url && (
+                    <div className="mt-2">
+                      <img src={formData.avatar_url} alt="Preview" className="w-20 h-20 rounded-full object-cover" />
+                    </div>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="linkedIn">LinkedIn Profile</Label>

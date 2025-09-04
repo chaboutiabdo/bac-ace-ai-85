@@ -183,11 +183,15 @@ const Exams = () => {
                       Solutions
                     </Button>
                     <Button 
-                      className="w-full bg-gradient-to-r from-primary to-accent text-white hover:opacity-90"
+                      className="w-full relative overflow-hidden group bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
                       onClick={() => handleExamAction(exam, 'solved_with_ai')}
                     >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Solve with AI
+                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="relative flex items-center justify-center">
+                        <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                        <span className="font-semibold">Solve with AI</span>
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-ping" />
+                      </div>
                     </Button>
                   </div>
                 </CardContent>
