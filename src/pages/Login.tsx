@@ -42,7 +42,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signUp(email, password, name);
+    const { error } = await signUp(email, password, name, phone);
     
     if (!error) {
       // User will need to verify email

@@ -15,10 +15,10 @@ import {
   Facebook,
   Twitter,
   Instagram,
-  Youtube
+  Youtube,
+  GraduationCap
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import studentGirl from "@/assets/student-girl.png";
 
 const LandingPage = () => {
   const scrollToSection = (id: string) => {
@@ -90,12 +90,10 @@ const LandingPage = () => {
               </div>
             </div>
             <div className="relative">
-              <div className="relative z-10">
-                <img 
-                  src={studentGirl} 
-                  alt="Successful BAC Student" 
-                  className="w-full max-w-md mx-auto"
-                />
+              <div className="relative z-10 flex items-center justify-center">
+                <div className="w-80 h-80 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10">
+                  <GraduationCap className="h-32 w-32 text-primary" />
+                </div>
               </div>
               <div className="absolute top-1/2 right-0 transform translate-x-1/4 -translate-y-1/2">
                 <Card className="bg-purple-500/20 border-purple-500/30 backdrop-blur-sm">

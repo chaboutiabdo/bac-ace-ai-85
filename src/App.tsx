@@ -15,6 +15,7 @@ import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import GetStarted from "./pages/GetStarted";
+import LandingPage from "./pages/LandingPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -31,7 +32,8 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/" element={<GetStarted />} />
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/get-started" element={<GetStarted />} />
                 <Route path="/dashboard" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/admin" element={<AdminDashboard />} />
