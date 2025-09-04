@@ -78,6 +78,8 @@ export function AlumniManagement() {
     linkedin_url: "",
     avatar_url: ""
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fields = ["Computer Science", "Engineering", "Medicine", "Economics", "Law", "Architecture", "Business", "Sciences"];
 
@@ -113,6 +115,34 @@ export function AlumniManagement() {
     return matchesSearch && matchesField;
   });
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `alumni/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const handleCreateAlumni = async () => {
     if (!formData.name || !formData.university || !formData.field_of_study) {
       toast({
@@ -124,6 +154,16 @@ export function AlumniManagement() {
     }
 
     try {
+      let avatarUrl = formData.avatar_url;
+
+      // If there's a selected file, upload it first
+      if (selectedFile) {
+        const uploadedUrl = await uploadImage(selectedFile);
+        if (uploadedUrl) {
+          avatarUrl = uploadedUrl;
+        }
+      }
+
       const { data, error } = await supabase
         .from('alumni')
         .insert({
@@ -133,7 +173,7 @@ export function AlumniManagement() {
           bac_score: formData.bac_score ? parseFloat(formData.bac_score) : null,
           advice: formData.advice,
           linkedin_url: formData.linkedin_url,
-          avatar_url: formData.avatar_url,
+          avatar_url: avatarUrl,
           available_for_mentoring: true
         })
         .select()
@@ -151,6 +191,8 @@ export function AlumniManagement() {
         linkedin_url: "",
         avatar_url: ""
       });
+      setSelectedFile(null);
+      setPreviewUrl(null);
       setIsCreateDialogOpen(false);
       
       toast({
@@ -250,17 +292,18 @@ export function AlumniManagement() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        setSelectedFile(file);
                         const reader = new FileReader();
                         reader.onload = () => {
-                          setFormData({...formData, avatar_url: reader.result as string});
+                          setPreviewUrl(reader.result as string);
                         };
                         reader.readAsDataURL(file);
                       }
                     }}
                   />
-                  {formData.avatar_url && (
+                  {previewUrl && (
                     <div className="mt-2">
-                      <img src={formData.avatar_url} alt="Preview" className="w-20 h-20 rounded-full object-cover" />
+                      <img src={previewUrl} alt="Preview" className="w-20 h-20 rounded-full object-cover" />
                     </div>
                   )}
                 </div>
