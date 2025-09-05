@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Eye, FileText, Sparkles } from "lucide-react";
+import { CheckCircle, Eye, FileText, Sparkles, Download } from "lucide-react";
 import Navigation from "@/components/layout/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
@@ -16,24 +16,80 @@ interface Exam {
   stream: string;
   year: number;
   title: string;
+  difficulty?: string;
+  questions?: number;
+  exam_url?: string;
+  solution_url?: string;
+  downloads?: number;
   solved: boolean;
 }
-
-const mockExams: Exam[] = [
-  { id: "1", subject: "Math", stream: "Sciences", year: 2023, title: "Math - Sciences 2023", solved: true },
-  { id: "2", subject: "Physics", stream: "Sciences", year: 2023, title: "Physics - Sciences 2023", solved: false },
-  { id: "3", subject: "Math", stream: "Math", year: 2022, title: "Math - Math 2022", solved: true },
-  { id: "4", subject: "Physics", stream: "Sciences", year: 2022, title: "Physics - Sciences 2022", solved: false },
-];
 
 const Exams = () => {
   const [selectedStream, setSelectedStream] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>("");
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [examProgress, setExamProgress] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
   
   const { user } = useAuth();
   const { trackExamActivity } = useActivityTracking();
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchExams();
+    if (user) {
+      fetchExamProgress(); 
+    }
+  }, [user]);
+
+  const fetchExams = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('exams')
+        .select('*')
+        .order('year', { ascending: false });
+
+      if (error) throw error;
+      
+      const examsWithSolved = data?.map(exam => ({
+        ...exam,
+        solved: examProgress[exam.id]?.solved_with_ai || false
+      })) || [];
+      
+      setExams(examsWithSolved);
+    } catch (error) {
+      console.error('Error fetching exams:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load exams",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchExamProgress = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('exam_progress')
+        .select('*')
+        .eq('student_id', user.id);
+
+      if (error) throw error;
+      
+      const progressMap: Record<string, any> = {};
+      data?.forEach(progress => {
+        progressMap[progress.exam_id] = progress;
+      });
+      setExamProgress(progressMap);
+    } catch (error) {
+      console.error('Error fetching exam progress:', error);
+    }
+  };
 
   const handleExamAction = async (exam: Exam, action: 'viewed' | 'viewed_solution' | 'solved_with_ai') => {
     if (!user) return;
@@ -80,7 +136,44 @@ const Exams = () => {
     }
   };
 
-  const filteredExams = mockExams.filter(exam => {
+  const openExamFile = async (exam: Exam, type: 'exam' | 'solution') => {
+    const fileUrl = type === 'exam' ? exam.exam_url : exam.solution_url;
+    if (!fileUrl) {
+      toast({
+        title: "Error",
+        description: `${type === 'exam' ? 'Exam' : 'Solution'} file not available`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(fileUrl, 3600); // 1 hour expiry
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+        
+        // Update downloads count
+        if (type === 'exam') {
+          await supabase
+            .from('exams')
+            .update({ downloads: (exam.downloads || 0) + 1 })
+            .eq('id', exam.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error opening file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to open file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredExams = exams.filter(exam => {
     return (!selectedStream || selectedStream === "all" || exam.stream === selectedStream) &&
            (!selectedSubject || selectedSubject === "all" || exam.subject === selectedSubject) &&
            (!selectedYear || selectedYear === "all" || exam.year.toString() === selectedYear);
@@ -147,6 +240,11 @@ const Exams = () => {
             </CardContent>
           </Card>
 
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredExams.map((exam) => (
               <Card key={exam.id} className="group hover:shadow-lg transition-all duration-300 border-primary/10">
@@ -165,22 +263,35 @@ const Exams = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Difficulty: <Badge variant="outline" className="ml-1">{exam.difficulty || 'Medium'}</Badge></span>
+                    <span>{exam.downloads || 0} downloads</span>
+                  </div>
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <Button 
-                      className="w-full"
+                      className="w-full hover:scale-105 transition-all duration-300"
                       variant="outline"
-                      onClick={() => handleExamAction(exam, 'viewed')}
+                      onClick={() => {
+                        handleExamAction(exam, 'viewed');
+                        openExamFile(exam, 'exam');
+                      }}
+                      disabled={!exam.exam_url}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View Exam
                     </Button>
                     <Button 
-                      className="w-full"
+                      className="w-full hover:scale-105 transition-all duration-300"
                       variant="outline"
-                      onClick={() => handleExamAction(exam, 'viewed_solution')}
+                      onClick={() => {
+                        handleExamAction(exam, 'viewed_solution');
+                        openExamFile(exam, 'solution');
+                      }}
+                      disabled={!exam.solution_url}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      Solutions
+                      {exam.solution_url ? 'Solutions' : 'No Solution'}
                     </Button>
                     <Button 
                       className="w-full relative overflow-hidden group bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
@@ -198,6 +309,12 @@ const Exams = () => {
               </Card>
             ))}
           </div>
+          )}
+          {!loading && filteredExams.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No exams found matching your filters.</p>
+            </div>
+          )}
         </div>
       </main>
     </div>

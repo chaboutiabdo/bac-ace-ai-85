@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, FileText, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface UploadExamDialogProps {
   children: React.ReactNode;
@@ -28,12 +30,92 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
   const [open, setOpen] = useState(false);
   const [examFile, setExamFile] = useState<File | null>(null);
   const [solutionFile, setSolutionFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    subject: "",
+    year: "",
+    stream: "",
+    difficulty: "",
+    questions: "",
+    description: ""
+  });
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission - connect to backend later
-    console.log("Exam uploaded with solution");
-    setOpen(false);
+    if (!examFile) {
+      toast({
+        title: "Error",
+        description: "Please select an exam file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Upload exam file to storage
+      const examFileName = `exams/${Date.now()}-${examFile.name}`;
+      const { error: examUploadError } = await supabase.storage
+        .from('documents')
+        .upload(examFileName, examFile);
+
+      if (examUploadError) throw examUploadError;
+
+      let solutionFileName = null;
+      if (solutionFile) {
+        solutionFileName = `solutions/${Date.now()}-${solutionFile.name}`;
+        const { error: solutionUploadError } = await supabase.storage
+          .from('documents')
+          .upload(solutionFileName, solutionFile);
+
+        if (solutionUploadError) throw solutionUploadError;
+      }
+
+      // Insert exam record into database
+      const { error: insertError } = await supabase
+        .from('exams')
+        .insert({
+          title: formData.title,
+          subject: formData.subject,
+          year: parseInt(formData.year),
+          stream: formData.stream,
+          difficulty: formData.difficulty,
+          questions: parseInt(formData.questions) || 0,
+          exam_url: examFileName,
+          solution_url: solutionFileName
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Success",
+        description: "Exam uploaded successfully!",
+      });
+
+      setOpen(false);
+      setFormData({
+        title: "",
+        subject: "",
+        year: "",
+        stream: "",
+        difficulty: "",
+        questions: "",
+        description: ""
+      });
+      setExamFile(null);
+      setSolutionFile(null);
+    } catch (error) {
+      console.error('Error uploading exam:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload exam",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,7 +123,7 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -59,6 +141,8 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
               <Input
                 id="title"
                 placeholder="e.g., BAC Mathematics 2024 - Session 1"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
                 required
               />
             </div>
@@ -66,26 +150,26 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Select required>
+                <Select value={formData.subject} onValueChange={(value) => setFormData({...formData, subject: value})} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mathematics">Mathematics</SelectItem>
-                    <SelectItem value="physics">Physics</SelectItem>
-                    <SelectItem value="chemistry">Chemistry</SelectItem>
-                    <SelectItem value="biology">Biology</SelectItem>
-                    <SelectItem value="literature">Literature</SelectItem>
-                    <SelectItem value="philosophy">Philosophy</SelectItem>
-                    <SelectItem value="history">History</SelectItem>
-                    <SelectItem value="geography">Geography</SelectItem>
+                    <SelectItem value="Mathematics">Mathematics</SelectItem>
+                    <SelectItem value="Physics">Physics</SelectItem>
+                    <SelectItem value="Chemistry">Chemistry</SelectItem>
+                    <SelectItem value="Biology">Biology</SelectItem>
+                    <SelectItem value="Literature">Literature</SelectItem>
+                    <SelectItem value="Philosophy">Philosophy</SelectItem>
+                    <SelectItem value="History">History</SelectItem>
+                    <SelectItem value="Geography">Geography</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="year">Year</Label>
-                <Select required>
+                <Select value={formData.year} onValueChange={(value) => setFormData({...formData, year: value})} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
@@ -102,21 +186,22 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="type">Exam Type</Label>
-                <Select required>
+                <Label htmlFor="stream">Stream</Label>
+                <Select value={formData.stream} onValueChange={(value) => setFormData({...formData, stream: value})} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder="Select stream" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="official">Official</SelectItem>
-                    <SelectItem value="practice">Practice</SelectItem>
+                    <SelectItem value="Sciences">Sciences</SelectItem>
+                    <SelectItem value="Math">Math</SelectItem>
+                    <SelectItem value="Letters">Letters</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="difficulty">Difficulty</Label>
-                <Select required>
+                <Select value={formData.difficulty} onValueChange={(value) => setFormData({...formData, difficulty: value})} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select difficulty" />
                   </SelectTrigger>
@@ -136,6 +221,8 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
                 type="number"
                 placeholder="e.g., 25"
                 min="1"
+                value={formData.questions}
+                onChange={(e) => setFormData({...formData, questions: e.target.value})}
                 required
               />
             </div>
@@ -146,6 +233,8 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
                 id="description"
                 placeholder="Additional details about the exam..."
                 rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
               />
             </div>
           </div>
@@ -192,13 +281,17 @@ export function UploadExamDialog({ children }: UploadExamDialogProps) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <div className="flex justify-end gap-2 pt-2 border-t bg-background sticky bottom-0">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" className="gradient-primary text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Upload Exam
+            <Button type="submit" className="gradient-primary text-white" disabled={loading}>
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              {loading ? "Uploading..." : "Upload Exam"}
             </Button>
           </div>
         </form>

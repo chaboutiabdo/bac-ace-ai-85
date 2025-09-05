@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,75 +8,99 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap, MessageCircle, Calendar, Phone, Star, Award } from "lucide-react";
 import Navigation from "@/components/layout/Navigation";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Alumni {
   id: string;
   name: string;
-  bacScore: number;
+  bac_score: number;
   university: string;
-  field: string;
-  avatar: string;
+  field_of_study: string;
+  avatar_url?: string;
   advice: string;
-  rating: number;
-  graduationYear: number;
+  available_for_mentoring: boolean;
+  linkedin_url?: string;
 }
-
-const mockAlumni: Alumni[] = [
-  {
-    id: "1",
-    name: "Ahmed Benaissa",
-    bacScore: 18.25,
-    university: "USTHB",
-    field: "Computer Science",
-    avatar: "/placeholder.svg",
-    advice: "Focus on understanding concepts rather than memorizing. Practice daily and don't be afraid to ask questions.",
-    rating: 4.9,
-    graduationYear: 2022
-  },
-  {
-    id: "2",
-    name: "Fatima Zerhouni",
-    bacScore: 17.80,
-    university: "University of Algiers",
-    field: "Medicine",
-    avatar: "/placeholder.svg", 
-    advice: "Consistency is key. Create a study schedule and stick to it. Biology requires lots of practice with diagrams.",
-    rating: 4.8,
-    graduationYear: 2021
-  },
-  {
-    id: "3",
-    name: "Youcef Benchikh",
-    bacScore: 16.95,
-    university: "ENP",
-    field: "Engineering",
-    avatar: "/placeholder.svg",
-    advice: "Math and Physics go hand in hand. Master the fundamentals before moving to complex problems.",
-    rating: 4.7,
-    graduationYear: 2020
-  }
-];
 
 const Alumni = () => {
   const [selectedAlumni, setSelectedAlumni] = useState<Alumni | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [alumni, setAlumni] = useState<Alumni[]>([]);
+  const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState({
     topic: "",
     timePreference: "",
     phone: "",
     message: ""
   });
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchAlumni();
+  }, []);
+
+  const fetchAlumni = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('alumni')
+        .select('*')
+        .eq('available_for_mentoring', true)
+        .order('bac_score', { ascending: false });
+
+      if (error) throw error;
+      setAlumni(data || []);
+    } catch (error) {
+      console.error('Error fetching alumni:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load alumni",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBookMentoring = (alumni: Alumni) => {
     setSelectedAlumni(alumni);
     setShowBookingForm(true);
   };
 
-  const handleSubmitBooking = () => {
-    // TODO: Submit booking to backend
-    console.log("Booking submitted:", { alumni: selectedAlumni, ...bookingData });
-    setShowBookingForm(false);
-    setBookingData({ topic: "", timePreference: "", phone: "", message: "" });
+  const handleSubmitBooking = async () => {
+    if (!user || !selectedAlumni) return;
+
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .insert({
+          student_id: user.id,
+          alumni_id: selectedAlumni.id,
+          topic: bookingData.topic,
+          time_preference: bookingData.timePreference,
+          phone: bookingData.phone,
+          notes: bookingData.message
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Mentoring session request submitted successfully!",
+      });
+
+      setShowBookingForm(false);
+      setBookingData({ topic: "", timePreference: "", phone: "", message: "" });
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit booking request",
+        variant: "destructive",
+      });
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -101,22 +125,31 @@ const Alumni = () => {
           </div>
 
           {!showBookingForm ? (
+            loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : alumni.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No alumni mentors available at the moment.</p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockAlumni.map((alumni) => (
-                <Card key={alumni.id} className="group hover:shadow-lg transition-all duration-300 border-primary/10">
+              {alumni.map((alumnus) => (
+                <Card key={alumnus.id} className="group hover:shadow-lg transition-all duration-300 border-primary/10 animate-fade-in hover:scale-105">
                   <CardHeader className="text-center space-y-4">
                     <Avatar className="h-20 w-20 mx-auto">
-                      <AvatarImage src={alumni.avatar} alt={alumni.name} />
+                      <AvatarImage src={alumnus.avatar_url || "/placeholder.svg"} alt={alumnus.name} />
                       <AvatarFallback className="text-lg font-semibold bg-gradient-to-br from-primary/20 to-accent/20">
-                        {alumni.name.split(' ').map(n => n[0]).join('')}
+                        {alumnus.name.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div>
-                      <CardTitle className="text-xl">{alumni.name}</CardTitle>
+                      <CardTitle className="text-xl">{alumnus.name}</CardTitle>
                       <CardDescription className="flex items-center justify-center gap-1 mt-2">
                         <GraduationCap className="h-4 w-4" />
-                        Class of {alumni.graduationYear}
+                        Alumni Mentor
                       </CardDescription>
                     </div>
                   </CardHeader>
@@ -125,39 +158,33 @@ const Alumni = () => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">BAC Score:</span>
-                        <Badge className={`${getScoreColor(alumni.bacScore)} font-bold`}>
+                        <Badge className={`${getScoreColor(alumnus.bac_score)} font-bold`}>
                           <Award className="h-3 w-3 mr-1" />
-                          {alumni.bacScore}/20
+                          {alumnus.bac_score}/20
                         </Badge>
                       </div>
                       
                       <div className="space-y-1">
                         <div className="text-sm font-medium">University:</div>
-                        <div className="text-sm text-muted-foreground">{alumni.university}</div>
+                        <div className="text-sm text-muted-foreground">{alumnus.university}</div>
                       </div>
                       
                       <div className="space-y-1">
                         <div className="text-sm font-medium">Field of Study:</div>
-                        <div className="text-sm text-muted-foreground">{alumni.field}</div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-warning text-warning" />
-                        <span className="text-sm font-medium">{alumni.rating}/5</span>
-                        <span className="text-xs text-muted-foreground">(mentor rating)</span>
+                        <div className="text-sm text-muted-foreground">{alumnus.field_of_study}</div>
                       </div>
                     </div>
 
                     <div className="border-t pt-3">
                       <div className="text-sm font-medium mb-2">Advice:</div>
                       <p className="text-sm text-muted-foreground line-clamp-3">
-                        {alumni.advice}
+                        {alumnus.advice}
                       </p>
                     </div>
 
                     <Button 
-                      onClick={() => handleBookMentoring(alumni)}
-                      className="w-full"
+                      onClick={() => handleBookMentoring(alumnus)}
+                      className="w-full gradient-primary text-white hover:scale-105 transition-all"
                       variant="default"
                     >
                       <MessageCircle className="h-4 w-4 mr-2" />
@@ -167,6 +194,7 @@ const Alumni = () => {
                 </Card>
               ))}
             </div>
+            )
           ) : (
             <Card className="max-w-2xl mx-auto">
               <CardHeader>

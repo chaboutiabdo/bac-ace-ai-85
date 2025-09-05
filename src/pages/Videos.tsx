@@ -119,23 +119,58 @@ const Videos = () => {
       console.error('Error updating video progress:', error);
     }
 
-    // Open video based on device
+    // Open video based on device and type
     if (video.url) {
-      if (isMobile && video.type === 'youtube') {
-        // Open YouTube app on mobile
-        const youtubeAppUrl = video.url.replace('https://www.youtube.com/watch?v=', 'youtube://');
-        const youtubeId = video.url.split('v=')[1]?.split('&')[0];
-        if (youtubeId) {
-          window.location.href = `youtube://${youtubeId}`;
-          // Fallback to web version
-          setTimeout(() => {
-            window.open(video.url, '_blank');
-          }, 1500);
+      try {
+        // Validate YouTube URL format
+        const isValidYouTubeUrl = video.url.includes('youtube.com/watch?v=') || video.url.includes('youtu.be/');
+        
+        if (!isValidYouTubeUrl && video.type === 'youtube') {
+          toast({
+            title: "Invalid Video URL",
+            description: "This video link appears to be invalid. Please contact support.",
+            variant: "destructive",
+          });
+          return;
         }
-      } else {
-        // Open in new tab on desktop
-        window.open(video.url, '_blank');
+
+        if (isMobile && video.type === 'youtube') {
+          // Extract YouTube ID more reliably
+          let youtubeId = '';
+          if (video.url.includes('youtube.com/watch?v=')) {
+            youtubeId = video.url.split('v=')[1]?.split('&')[0];
+          } else if (video.url.includes('youtu.be/')) {
+            youtubeId = video.url.split('youtu.be/')[1]?.split('?')[0];
+          }
+          
+          if (youtubeId) {
+            // Try to open in YouTube app first
+            window.location.href = `youtube://watch?v=${youtubeId}`;
+            // Fallback to web version after delay
+            setTimeout(() => {
+              window.open(video.url, '_blank', 'noopener,noreferrer');
+            }, 1500);
+          } else {
+            window.open(video.url, '_blank', 'noopener,noreferrer');
+          }
+        } else {
+          // Open in new tab with proper security attributes
+          window.open(video.url, '_blank', 'noopener,noreferrer');
+        }
+      } catch (error) {
+        console.error('Error opening video:', error);
+        toast({
+          title: "Error",
+          description: "Failed to open video. Please try again.",
+          variant: "destructive",
+        });
       }
+    } else {
+      toast({
+        title: "Video Unavailable",
+        description: "This video is not available at the moment.",
+        variant: "destructive",
+      });
     }
   };
 
