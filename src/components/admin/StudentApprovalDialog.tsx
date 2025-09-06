@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { UserCheck, UserX, Crown, Star, Zap } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Star, CheckCircle, Crown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingStudent {
   id: string;
@@ -35,140 +36,200 @@ interface StudentApprovalDialogProps {
 
 const subscriptionTiers = [
   {
-    id: "1",
+    id: "basic",
     name: "Basic",
-    icon: Star,
-    features: ["Access to practice quizzes", "Basic exam papers", "Progress tracking"],
-    color: "text-blue-500"
+    icon: "📚",
+    features: ["Access to basic content", "Limited AI assistance", "Community support", "Basic video library"],
+    color: "text-blue-600"
   },
   {
-    id: "2", 
-    name: "Premium",
-    icon: Crown,
-    features: ["All Basic features", "Official exam papers", "Detailed solutions", "AI-powered explanations"],
-    color: "text-purple-500"
+    id: "offer1",
+    name: "Offer 1",
+    icon: "⭐",
+    features: ["Enhanced content access", "Advanced AI tutoring", "Priority support", "Extended video library", "Practice exams"],
+    color: "text-purple-600"
   },
   {
-    id: "3",
-    name: "Elite",
-    icon: Zap,
-    features: ["All Premium features", "Priority support", "Custom study plans", "Advanced analytics", "Early access to new content"],
-    color: "text-gold-500"
+    id: "offer2", 
+    name: "Offer 2",
+    icon: "🏆",
+    features: ["Premium content access", "Unlimited AI tutoring", "1-on-1 mentoring sessions", "All video content", "Priority exam access", "Career guidance"],
+    color: "text-gold-600"
   }
 ];
 
 export function StudentApprovalDialog({ children, student }: StudentApprovalDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedTier, setSelectedTier] = useState<string>("");
-  const [notes, setNotes] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const { toast } = useToast();
 
-  const handleApprove = () => {
-    if (!selectedTier) return;
-    // Handle approval - connect to backend later
-    console.log("Student approved:", student.id, "Tier:", selectedTier);
-    setOpen(false);
+  const handleApprove = async () => {
+    if (!selectedTier) {
+      toast({
+        title: "Error",
+        description: "Please select a subscription tier",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Here you would typically call your API to approve the student
+      // and assign them the selected subscription tier
+      console.log("Approving student:", student.name, "with tier:", selectedTier, "notes:", adminNotes);
+      
+      toast({
+        title: "Success",
+        description: `Student ${student.name} approved with ${subscriptionTiers.find(t => t.id === selectedTier)?.name} subscription`,
+      });
+      
+      setOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to approve student",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleReject = () => {
-    // Handle rejection - connect to backend later
-    console.log("Student rejected:", student.id);
-    setOpen(false);
+  const handleReject = async () => {
+    try {
+      // Here you would typically call your API to reject the student
+      console.log("Rejecting student:", student.name, "notes:", adminNotes);
+      
+      toast({
+        title: "Success", 
+        description: `Student ${student.name} application rejected`,
+      });
+      
+      setOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject student", 
+        variant: "destructive",
+      });
+    }
   };
 
-  const selectedTierInfo = subscriptionTiers.find(tier => tier.id === selectedTier);
+  const selectedTierData = subscriptionTiers.find(tier => tier.id === selectedTier);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Student Account Approval</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-primary" />
+            Review Student Application
+          </DialogTitle>
           <DialogDescription>
-            Review and approve the registration request from {student.name}
+            Review and approve or reject the student registration request
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6">
-          {/* Student Info */}
-          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-            <h3 className="font-semibold text-lg">{student.name}</h3>
-            <p className="text-muted-foreground">{student.email}</p>
-            <p className="text-sm"><strong>School:</strong> {student.school}</p>
-            <p className="text-sm"><strong>Registration Date:</strong> {new Date(student.registrationDate).toLocaleDateString()}</p>
+          {/* Student Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Student Information</h3>
+            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Name:</span>
+                <p className="font-medium">{student.name}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Email:</span>
+                <p className="font-medium">{student.email}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">School:</span>
+                <p className="font-medium">{student.school}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Registration Date:</span>
+                <p className="font-medium">{new Date(student.registrationDate).toLocaleDateString()}</p>
+              </div>
+            </div>
           </div>
 
           {/* Subscription Tier Selection */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">Select Subscription Tier</Label>
+            <h3 className="font-semibold">Select Subscription Tier</h3>
             <Select value={selectedTier} onValueChange={setSelectedTier}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a subscription tier" />
+                <SelectValue placeholder="Choose subscription tier for this student" />
               </SelectTrigger>
               <SelectContent>
-                {subscriptionTiers.map((tier) => {
-                  const Icon = tier.icon;
-                  return (
-                    <SelectItem key={tier.id} value={tier.id}>
-                      <div className="flex items-center gap-2">
-                        <Icon className={`h-4 w-4 ${tier.color}`} />
-                        <span>{tier.name}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
+                {subscriptionTiers.map((tier) => (
+                  <SelectItem key={tier.id} value={tier.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{tier.icon}</span>
+                      <span className={tier.color}>{tier.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            {/* Tier Features Preview */}
-            {selectedTierInfo && (
-              <div className="bg-background border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <selectedTierInfo.icon className={`h-5 w-5 ${selectedTierInfo.color}`} />
-                  <h4 className="font-semibold">{selectedTierInfo.name} Features</h4>
-                </div>
-                <ul className="space-y-1">
-                  {selectedTierInfo.features.map((feature, index) => (
-                    <li key={index} className="text-sm flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 bg-primary rounded-full" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {/* Tier Preview */}
+            {selectedTierData && (
+              <Card className="border-primary/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">{selectedTierData.icon}</span>
+                    <h4 className={`font-semibold ${selectedTierData.color}`}>
+                      {selectedTierData.name} Features
+                    </h4>
+                  </div>
+                  <ul className="space-y-1">
+                    {selectedTierData.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="h-3 w-3 text-success" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             )}
           </div>
 
-          {/* Notes */}
+          {/* Admin Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Admin Notes (Optional)</Label>
+            <label htmlFor="notes" className="text-sm font-medium">
+              Admin Notes (Optional)
+            </label>
             <Textarea
               id="notes"
-              placeholder="Add any notes about this approval..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any notes about this approval/rejection..."
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
               rows={3}
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
             <Button 
-              type="button" 
               variant="destructive" 
               onClick={handleReject}
             >
-              <UserX className="h-4 w-4 mr-2" />
-              Reject
+              Reject Application
             </Button>
             <Button 
               onClick={handleApprove}
-              disabled={!selectedTier}
               className="gradient-primary text-white"
+              disabled={!selectedTier}
             >
-              <UserCheck className="h-4 w-4 mr-2" />
-              Approve
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve Student
             </Button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,18 +8,21 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
-import Quizzes from "./pages/Quizzes";
-import Exams from "./pages/Exams";
-import Videos from "./pages/Videos";
-import LearnAI from "./pages/LearnAI";
-import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import GetStarted from "./pages/GetStarted";
 import LandingPage from "./pages/LandingPage";
-import AdminDashboard from "./pages/AdminDashboard";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import LazyLoad from "./components/LazyLoad";
+
+// Lazy load heavy components for better performance
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Videos = lazy(() => import("./pages/Videos"));
+const Exams = lazy(() => import("./pages/Exams"));
+const Quizzes = lazy(() => import("./pages/Quizzes"));
+const Alumni = lazy(() => import("./pages/Alumni"));
+const LearnAI = lazy(() => import("./pages/LearnAI"));
 
 const queryClient = new QueryClient();
 
@@ -36,12 +40,36 @@ const App = () => (
                 <Route path="/get-started" element={<GetStarted />} />
                 <Route path="/dashboard" element={<Index />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/quizzes" element={<Quizzes />} />
-                <Route path="/exams" element={<Exams />} />
-                <Route path="/videos" element={<Videos />} />
-                <Route path="/learn-ai" element={<LearnAI />} />
-                <Route path="/alumni" element={<Alumni />} />
+                <Route path="/admin" element={
+                  <LazyLoad>
+                    <AdminDashboard />
+                  </LazyLoad>
+                } />
+                <Route path="/quizzes" element={
+                  <LazyLoad>
+                    <Quizzes />
+                  </LazyLoad>
+                } />
+                <Route path="/exams" element={
+                  <LazyLoad>
+                    <Exams />
+                  </LazyLoad>
+                } />
+                <Route path="/videos" element={  
+                  <LazyLoad>
+                    <Videos />
+                  </LazyLoad>
+                } />
+                <Route path="/learn-ai" element={
+                  <LazyLoad>
+                    <LearnAI />
+                  </LazyLoad>
+                } />
+                <Route path="/alumni" element={
+                  <LazyLoad>
+                    <Alumni />
+                  </LazyLoad>
+                } />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

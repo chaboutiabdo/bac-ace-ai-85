@@ -277,6 +277,9 @@ export type Database = {
           name: string
           role: Database["public"]["Enums"]["user_role"]
           stream: string | null
+          subscription_tier:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           total_score: number
           updated_at: string
           user_id: string
@@ -288,6 +291,9 @@ export type Database = {
           name: string
           role?: Database["public"]["Enums"]["user_role"]
           stream?: string | null
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           total_score?: number
           updated_at?: string
           user_id: string
@@ -299,6 +305,9 @@ export type Database = {
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
           stream?: string | null
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
           total_score?: number
           updated_at?: string
           user_id?: string
@@ -663,6 +672,7 @@ export type Database = {
     Enums: {
       booking_status: "pending" | "confirmed" | "completed" | "cancelled"
       quiz_type: "daily" | "normal"
+      subscription_tier: "basic" | "offer1" | "offer2"
       user_role: "student" | "premium" | "admin"
       video_type: "youtube" | "premium"
     }
@@ -794,6 +804,7 @@ export const Constants = {
     Enums: {
       booking_status: ["pending", "confirmed", "completed", "cancelled"],
       quiz_type: ["daily", "normal"],
+      subscription_tier: ["basic", "offer1", "offer2"],
       user_role: ["student", "premium", "admin"],
       video_type: ["youtube", "premium"],
     },

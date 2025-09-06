@@ -1,25 +1,29 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { 
-  BookOpen, 
-  Brain, 
-  Trophy, 
-  Users, 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  BookOpen,
   Star,
-  CheckCircle,
+  Trophy,
+  Users,
+  GraduationCap,
   ArrowRight,
+  Play,
+  CheckCircle,
+  Sparkles,
   Mail,
   Phone,
   MapPin,
+  Menu,
   Facebook,
   Twitter,
   Instagram,
-  Youtube,
-  GraduationCap
+  Youtube
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Suspense, lazy } from "react";
 
 const LandingPage = () => {
   const scrollToSection = (id: string) => {
@@ -27,86 +31,103 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-lg border-b border-white/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10 overflow-x-hidden">
+      {/* Header */}
+      <header className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b border-border/50 z-50 animate-fade-in">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-8 w-8 text-purple-400" />
-              <span className="text-xl font-bold">EduLearn</span>
+            <div className="flex items-center space-x-2 animate-slide-up">
+              <GraduationCap className="h-8 w-8 text-primary animate-bounce-subtle" />
+              <span className="text-xl font-bold text-foreground">BAC Ace AI</span>
             </div>
-            <div className="hidden md:flex items-center gap-6">
-              <button onClick={() => scrollToSection('home')} className="hover:text-purple-400 transition-colors">Home</button>
-              <button onClick={() => scrollToSection('about')} className="hover:text-purple-400 transition-colors">About</button>
-              <button onClick={() => scrollToSection('features')} className="hover:text-purple-400 transition-colors">Features</button>
-              <button onClick={() => scrollToSection('testimonials')} className="hover:text-purple-400 transition-colors">Testimonials</button>
-              <button onClick={() => scrollToSection('contact')} className="hover:text-purple-400 transition-colors">Contact</button>
-            </div>
-            <Link to="/login">
-              <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
-                Get Started
-              </Button>
-            </Link>
+            <nav className="hidden md:flex items-center space-x-8">
+              <button 
+                onClick={() => scrollToSection('about')}
+                className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 story-link"
+              >
+                About
+              </button>
+              <button 
+                onClick={() => scrollToSection('features')}
+                className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 story-link"
+              >
+                Features
+              </button>
+              <button 
+                onClick={() => scrollToSection('contact')}
+                className="text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-105 story-link"
+              >
+                Contact
+              </button>
+              <Link to="/login">
+                <Button className="gradient-primary text-white hover:scale-105 transition-all duration-300 shadow-glow">
+                  Get Started
+                </Button>
+              </Link>
+            </nav>
+            <Button variant="ghost" className="md:hidden hover:scale-105 transition-transform">
+              <Menu className="h-6 w-6" />
+            </Button>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero Section */}
-      <section id="home" className="pt-20 pb-16 px-4">
-        <div className="container mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-screen">
-            <div className="space-y-8">
+      <section className="pt-24 pb-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 animate-pulse"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8 animate-slide-up">
               <div className="space-y-4">
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-                  01
+                <Badge className="bg-primary/20 text-primary border-primary/30 animate-fade-in">
+                  🎓 AI-Powered Learning
                 </Badge>
-                <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-                  JOIN US TO BE THE UNIQUE
-                  AND CREATIVE <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">BAC STUDENT</span>
+                <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent leading-tight animate-fade-in">
+                  Master Your BAC with AI-Powered Learning
                 </h1>
-                <p className="text-lg text-gray-300 max-w-lg">
-                  Master your BAC preparation with AI-powered learning, comprehensive exam solutions, and personalized study paths that adapt to your unique learning style.
+                <p className="text-xl text-muted-foreground leading-relaxed animate-fade-in" style={{animationDelay: '0.2s'}}>
+                  Transform your BAC preparation with personalized AI tutoring, practice exams, and expert guidance. Join thousands of successful students.
                 </p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 animate-fade-in" style={{animationDelay: '0.4s'}}>
                 <Link to="/login">
-                  <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 px-8">
-                    START LEARNING
+                  <Button size="lg" className="gradient-primary text-white px-8 py-6 text-lg font-semibold shadow-glow hover:scale-105 transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-secondary to-accent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <span className="relative flex items-center">
+                      Start Learning Now
+                      <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </span>
                   </Button>
                 </Link>
-                <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button variant="outline" size="lg" className="px-8 py-6 text-lg hover:scale-105 transition-all duration-300 border-primary/20 hover:border-primary hover:bg-primary/5">
+                  <Play className="mr-2 h-5 w-5" />
                   Watch Demo
                 </Button>
               </div>
-              <div className="flex items-center gap-8 text-sm">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  <span>1000+ Practice Questions</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  <span>AI-Powered Learning</span>
-                </div>
-              </div>
             </div>
-            <div className="relative">
+            <div className="relative animate-fade-in" style={{animationDelay: '0.6s'}}>
               <div className="relative z-10 flex items-center justify-center">
-                <div className="w-80 h-80 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10">
-                  <GraduationCap className="h-32 w-32 text-primary" />
+                <div className="w-80 h-80 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10 relative overflow-hidden group hover:scale-105 transition-all duration-500">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  <GraduationCap className="h-32 w-32 text-primary animate-bounce-subtle" />
                 </div>
               </div>
-              <div className="absolute top-1/2 right-0 transform translate-x-1/4 -translate-y-1/2">
-                <Card className="bg-purple-500/20 border-purple-500/30 backdrop-blur-sm">
+              <div className="absolute top-1/2 right-0 transform translate-x-1/4 -translate-y-1/2 animate-bounce-subtle" style={{animationDelay: '0.8s'}}>
+                <Card className="bg-purple-500/20 border-purple-500/30 backdrop-blur-sm hover:scale-110 transition-all duration-300">
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                        <Trophy className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-lg font-bold">A+ Grade</div>
-                        <div className="text-sm text-gray-300">95% Success Rate</div>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-400 animate-pulse" />
+                      <span className="text-sm font-medium text-white">98% Success Rate</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="absolute bottom-10 left-0 transform -translate-x-1/4 animate-bounce-subtle" style={{animationDelay: '1s'}}>
+                <Card className="bg-green-500/20 border-green-500/30 backdrop-blur-sm hover:scale-110 transition-all duration-300">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-400 animate-pulse" />
+                      <span className="text-sm font-medium text-white">4.9/5 Rating</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -117,249 +138,161 @@ const LandingPage = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 px-4 bg-black/20">
-        <div className="container mx-auto">
-          <div className="text-center space-y-6 max-w-3xl mx-auto">
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-              About Us
-            </Badge>
-            <h2 className="text-4xl font-bold">
-              Revolutionizing <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">BAC Education</span>
+      <section id="about" className="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              About BAC Ace AI
             </h2>
-            <p className="text-lg text-gray-300">
-              We're dedicated to empowering Algerian students with cutting-edge technology and comprehensive resources to excel in their BAC examinations. Our platform combines AI-driven personalized learning with extensive past exam databases.
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              We are dedicated to revolutionizing BAC preparation through cutting-edge AI technology and personalized learning experiences.
             </p>
-            <div className="grid md:grid-cols-3 gap-8 pt-8">
-              <div className="text-center space-y-3">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <Brain className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold">AI-Powered Learning</h3>
-                <p className="text-gray-400">Personalized study paths that adapt to your learning style</p>
-              </div>
-              <div className="text-center space-y-3">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <BookOpen className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold">Comprehensive Resources</h3>
-                <p className="text-gray-400">Complete collection of past BAC exams and solutions</p>
-              </div>
-              <div className="text-center space-y-3">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <Users className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold">Expert Mentorship</h3>
-                <p className="text-gray-400">Connect with successful alumni for guidance and support</p>
-              </div>
-            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="hover:scale-105 transition-all duration-300 border-primary/10 animate-fade-in">
+              <CardContent className="p-6 text-center">
+                <Users className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Expert Team</h3>
+                <p className="text-muted-foreground">Experienced educators and AI specialists working together</p>
+              </CardContent>
+            </Card>
+            <Card className="hover:scale-105 transition-all duration-300 border-primary/10 animate-fade-in" style={{animationDelay: '0.2s'}}>
+              <CardContent className="p-6 text-center">
+                <GraduationCap className="h-12 w-12 text-secondary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Proven Results</h3>
+                <p className="text-muted-foreground">Over 10,000 students have achieved their BAC goals with us</p>
+              </CardContent>
+            </Card>
+            <Card className="hover:scale-105 transition-all duration-300 border-primary/10 animate-fade-in" style={{animationDelay: '0.4s'}}>
+              <CardContent className="p-6 text-center">
+                <Sparkles className="h-12 w-12 text-accent mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">AI Innovation</h3>
+                <p className="text-muted-foreground">Latest AI technology for personalized learning paths</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4">
-        <div className="container mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-              Features
-            </Badge>
-            <h2 className="text-4xl font-bold">
-              Everything You Need to <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Succeed</span>
+      <section id="features" className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Powerful Features
             </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Everything you need to succeed in your BAC examination, powered by advanced AI technology.
+            </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <Brain className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="font-semibold">AI Study Assistant</h3>
-                <p className="text-sm text-gray-400">Get instant help and explanations for any question</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <BookOpen className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="font-semibold">Past Exams Database</h3>
-                <p className="text-sm text-gray-400">Access 10+ years of BAC exams with solutions</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <Trophy className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="font-semibold">Progress Tracking</h3>
-                <p className="text-sm text-gray-400">Monitor your improvement with detailed analytics</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="font-semibold">Alumni Network</h3>
-                <p className="text-sm text-gray-400">Connect with successful graduates for mentorship</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 bg-black/20">
-        <div className="container mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-              Success Stories
-            </Badge>
-            <h2 className="text-4xl font-bold">
-              What Our <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Students Say</span>
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-300">"EduLearn helped me achieve 18.5/20 in my BAC. The AI explanations made complex topics so much easier to understand!"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"></div>
-                  <div>
-                    <div className="font-semibold">Amina Benali</div>
-                    <div className="text-sm text-gray-400">Sciences Stream, 2023</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-300">"The past exam database was incredibly helpful. I practiced with real BAC questions and felt confident on exam day."</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"></div>
-                  <div>
-                    <div className="font-semibold">Youcef Mansouri</div>
-                    <div className="text-sm text-gray-400">Math Stream, 2023</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-300">"Connecting with alumni through the platform gave me valuable insights about university life and career choices."</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"></div>
-                  <div>
-                    <div className="font-semibold">Fatima Zohra</div>
-                    <div className="text-sm text-gray-400">Letters Stream, 2023</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { icon: BookOpen, title: "AI Tutoring", desc: "24/7 personalized AI assistance" },
+              { icon: Trophy, title: "Practice Exams", desc: "Real BAC exams with detailed solutions" },
+              { icon: Users, title: "Alumni Mentoring", desc: "Connect with successful graduates" },
+              { icon: Star, title: "Progress Tracking", desc: "Monitor your learning journey" },
+              { icon: CheckCircle, title: "Video Lessons", desc: "Comprehensive video library" },
+              { icon: Sparkles, title: "Smart Recommendations", desc: "AI-powered study suggestions" }
+            ].map((feature, index) => (
+              <Card key={index} className="hover:scale-105 transition-all duration-300 border-primary/10 animate-fade-in" style={{animationDelay: `${index * 0.1}s`}}>
+                <CardContent className="p-6 text-center">
+                  <feature.icon className="h-12 w-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-muted-foreground">{feature.desc}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 px-4">
-        <div className="container mx-auto">
-          <div className="text-center space-y-6 mb-16">
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+      <section id="contact" className="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16 animate-fade-in">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Get In Touch
-            </Badge>
-            <h2 className="text-4xl font-bold">
-              Ready to Start Your <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Success Journey?</span>
             </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Have questions? We're here to help you succeed in your BAC journey.
+            </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-            <div className="space-y-6">
-              <h3 className="text-2xl font-semibold">Contact Information</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <Mail className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium">Email</div>
-                    <div className="text-gray-400">support@edulearn.dz</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <Phone className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium">Phone</div>
-                    <div className="text-gray-400">+213 555 123 456</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-medium">Address</div>
-                    <div className="text-gray-400">Algiers, Algeria</div>
-                  </div>
+          <div className="grid md:grid-cols-2 gap-12">
+            <div className="space-y-8 animate-fade-in">
+              <div className="flex items-center gap-4">
+                <Mail className="h-6 w-6 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Email</h3>
+                  <p className="text-muted-foreground">support@bacacai.com</p>
                 </div>
               </div>
-              <div className="flex gap-4">
-                <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  <Facebook className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  <Twitter className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  <Instagram className="h-4 w-4" />
-                </Button>
-                <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                  <Youtube className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-4">
+                <Phone className="h-6 w-6 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Phone</h3>
+                  <p className="text-muted-foreground">+213 XXX XXX XXX</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <MapPin className="h-6 w-6 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Address</h3>
+                  <p className="text-muted-foreground">Algiers, Algeria</p>
+                </div>
               </div>
             </div>
-            <div className="space-y-6">
-              <h3 className="text-2xl font-semibold">Ready to Excel in Your BAC?</h3>
-              <p className="text-gray-300">
-                Join thousands of students who have already transformed their BAC preparation with our AI-powered platform.
-              </p>
-              <Link to="/login">
-                <Button size="lg" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
-                  Get Started Now
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
-            </div>
+            <form className="space-y-4 animate-fade-in" style={{animationDelay: '0.2s'}}>
+              <Input placeholder="Your Name" className="hover-scale" />
+              <Input placeholder="Your Email" type="email" className="hover-scale" />
+              <Textarea placeholder="Your Message" rows={4} className="hover-scale" />
+              <Button className="w-full gradient-primary text-white hover:scale-105 transition-all duration-300">
+                Send Message
+              </Button>
+            </form>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-white/10 bg-black/20">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-6 w-6 text-purple-400" />
-              <span className="font-bold">EduLearn</span>
+      <footer className="bg-background border-t border-border/50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-6 w-6 text-primary" />
+                <span className="font-bold">BAC Ace AI</span>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Empowering students to excel in their BAC examinations through AI-powered learning.
+              </p>
             </div>
-            <div className="text-sm text-gray-400">
-              © 2024 EduLearn. All rights reserved.
+            <div>
+              <h4 className="font-semibold mb-4">Quick Links</h4>
+              <div className="space-y-2 text-sm">
+                <button onClick={() => scrollToSection('about')} className="block text-muted-foreground hover:text-primary story-link">About</button>
+                <button onClick={() => scrollToSection('features')} className="block text-muted-foreground hover:text-primary story-link">Features</button>
+                <button onClick={() => scrollToSection('contact')} className="block text-muted-foreground hover:text-primary story-link">Contact</button>
+              </div>
             </div>
+            <div>
+              <h4 className="font-semibold mb-4">Platform</h4>
+              <div className="space-y-2 text-sm">
+                <Link to="/login" className="block text-muted-foreground hover:text-primary story-link">Login</Link>
+                <Link to="/get-started" className="block text-muted-foreground hover:text-primary story-link">Get Started</Link>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Follow Us</h4>
+              <div className="flex gap-4">
+                <Facebook className="h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer hover-scale" />
+                <Twitter className="h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer hover-scale" />
+                <Instagram className="h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer hover-scale" />
+                <Youtube className="h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer hover-scale" />
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-border/50 mt-8 pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2024 BAC Ace AI. All rights reserved.</p>
           </div>
         </div>
       </footer>
